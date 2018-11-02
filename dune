@@ -1,0 +1,5 @@
+(library
+ (name pluk_http)
+ (public_name pluk-http)
+ (libraries lwt.unix pluk-parser)
+ (preprocess (pps lwt_ppx)))
