@@ -66,15 +66,21 @@ let dispatch (input, output) settings proc =
         let%lwt () = Response.respond resp_500  output in
         Lwt.fail exn in
 
-  let rec maybe_continue () = 
+  let continue_allowed header =
+    match Hashtbl.find_opt header.Request.Header.fields "connection" with
+    | Some "close" -> false
+    | _ -> true in
+
+  let rec maybe_continue allowed = 
     match settings with
-    | {keep_alive_timeout_s = (Some sec); _} -> dispatch (Some sec)
+    | {keep_alive_timeout_s = (Some sec); _} when allowed ->
+        dispatch (Some sec)
     | _ -> Lwt.return_unit
 
   and do_request_and_continue header =
     let%lwt () = do_request header in
     let%lwt () = Lwt_io.flush output in
-    maybe_continue ()
+    maybe_continue (continue_allowed header)
 
   and parse_header header =
     match (Request.parse_http_header (P.stream_of_bytes header 0)) with

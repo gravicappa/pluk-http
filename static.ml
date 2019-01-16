@@ -12,13 +12,13 @@ let content_type_octet_stream = Content_type.create "application/octet-stream"
 let invalid_content_type = Content_type.create "" ();;
 
 let () =
-  let utf8 = Some "UTF-8" in
+  let charset = Some "UTF-8" in
   List.iter (fun (ext, ctype) -> Hashtbl.add content_types ext ctype) [
-    (".txt", Content_type.create "text/plain" ~charset:utf8 ());
-    (".css", Content_type.create "text/css" ~charset:utf8 ());
-    (".js", Content_type.create "text/javascript" ~charset:utf8 ());
-    (".json", Content_type.create "application/json" ~charset:utf8 ());
-    (".html", Content_type.create "text/html" ~charset:utf8 ());
+    (".txt", Content_type.create "text/plain" ~charset ());
+    (".css", Content_type.create "text/css" ~charset ());
+    (".js", Content_type.create "text/javascript" ~charset ());
+    (".json", Content_type.create "application/json" ~charset ());
+    (".html", Content_type.create "text/html" ~charset ());
     (".png", Content_type.create "image/png" ());
     (".jpg", Content_type.create "image/jpeg" ());
     (".jpeg", Content_type.create "image/jpeg" ());

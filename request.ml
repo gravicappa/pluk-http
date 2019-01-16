@@ -39,7 +39,7 @@ let header req = req.header;;
 let data req = Lazy.force req.data;;
 let settings req = req.settings;;
 
-let change_settings req proc = {req with settings = (proc req.settings)};;
+let change_settings proc req = {req with settings = (proc req.settings)};;
 
 let http_method req = req.header.http_method;;
 
@@ -49,15 +49,15 @@ let content_type req = req.header.content_type;;
 
 let content_length req = req.header.content_length;;
 
-let field req key =
+let field key req =
   Hashtbl.find req.header.fields (String.lowercase_ascii key);;
 
-let field_opt req key =
+let field_opt key req =
   Hashtbl.find_opt req.header.fields (String.lowercase_ascii key);;
 
-let cookie req key = Hashtbl.find req.header.cookies key;;
+let cookie key req = Hashtbl.find req.header.cookies key;;
 
-let cookie_opt req key = Hashtbl.find_opt req.header.cookies key;;
+let cookie_opt key req = Hashtbl.find_opt req.header.cookies key;;
 
 let parse_http_header_contents http_method target http_version =
   P.next Parse.http_header_fields (fun cell s ->

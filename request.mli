@@ -49,7 +49,7 @@ val data: t -> Data.t Lwt.t
 val settings: t -> Base.Settings.t
 (** Returns settings of a request *)
 
-val change_settings: t -> (Base.Settings.t -> Base.Settings.t) -> t
+val change_settings: (Base.Settings.t -> Base.Settings.t) -> t -> t
 (** [change_settings request proc] applies [proc] to request settings
     and returns request with settings modified to [proc] result *)
 
@@ -65,16 +65,16 @@ val content_type: t -> Base.Content_type.t option
 val content_length: t -> int option
 (** Returns content length a request *)
 
-val field: t -> string -> string
+val field: string -> t -> string
 (** Find header field by name. Raises [Not_found] if not found *)
 
-val field_opt: t -> string -> string option
+val field_opt: string -> t -> string option
 (** A version of [field] but returns option value *)
 
-val cookie: t -> string -> string
+val cookie: string -> t -> string
 (** Find cookie by name. Raises [Not_found] if not found *)
 
-val cookie_opt: t -> string -> string option
+val cookie_opt: string -> t -> string option
 (** A version of [cookie] but returns option value *)
 
 val http_method_of_string: string -> Base.http_method option

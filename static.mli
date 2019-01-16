@@ -13,6 +13,10 @@ val content_type_of_filename: string -> Base.Content_type.t
 (** Uses [content_types] table to determine file content type by its
     extension. *)
 
+val add_content_header: Response.t -> Base.Content_type.t -> float -> unit
+(** Adds `Content-Type`, `Date`, `Last-Modified`, `Cache-Control` fields
+    to response header *)
+
 val string_content:
   ?content_type:Base.Content_type.t -> string -> Dispatch.t
 (** [string_content ~content_type content] creates dispatch function
