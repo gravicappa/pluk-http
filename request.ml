@@ -3,10 +3,10 @@
   All rights reserved. This file is distributed under the terms of the
   GNU Lesser General Public License version 3 with OCaml linking exception *)
 
-open Base;;
-module P = Pluk_parser;;
+open Base
+module P = Pluk_parser
 
-exception Wrong_method of string;;
+exception Wrong_method of string
 
 module Header = struct
   type t = {
@@ -25,7 +25,7 @@ module Data = struct
   type t = {
     parameters: (string, Parameter.t) Hashtbl.t;
     body: string option;
-  };;
+  }
 end
 
 type t = {
@@ -33,40 +33,40 @@ type t = {
   data: Data.t Lwt.t Lazy.t;
   input: Lwt_io.input_channel;
   settings: Settings.t;
-};;
+}
 
-let header req = req.header;;
-let data req = Lazy.force req.data;;
-let settings req = req.settings;;
+let header req = req.header
+let data req = Lazy.force req.data
+let settings req = req.settings
 
-let change_settings proc req = {req with settings = (proc req.settings)};;
+let change_settings proc req = {req with settings = (proc req.settings)}
 
-let http_method req = req.header.http_method;;
+let http_method req = req.header.http_method
 
-let target req = req.header.target;;
+let target req = req.header.target
 
-let content_type req = req.header.content_type;;
+let content_type req = req.header.content_type
 
-let content_length req = req.header.content_length;;
+let content_length req = req.header.content_length
 
 let field key req =
-  Hashtbl.find req.header.fields (String.lowercase_ascii key);;
+  Hashtbl.find req.header.fields (String.lowercase_ascii key)
 
 let field_opt key req =
-  Hashtbl.find_opt req.header.fields (String.lowercase_ascii key);;
+  Hashtbl.find_opt req.header.fields (String.lowercase_ascii key)
 
-let cookie key req = Hashtbl.find req.header.cookies key;;
+let cookie key req = Hashtbl.find req.header.cookies key
 
-let cookie_opt key req = Hashtbl.find_opt req.header.cookies key;;
+let cookie_opt key req = Hashtbl.find_opt req.header.cookies key
 
 let parse_http_header_contents http_method target http_version =
   P.next Parse.http_header_fields (fun cell s ->
-    Parse_ok ({Header.http_method; target; http_version;
+    Ok ({Header.http_method; target; http_version;
                fields = cell.generic; cookies = cell.cookies;
                content_length = cell.content_length;
                content_type = cell.content_type;
                content_disposition = cell.content_disposition},
-              s));;
+              s))
 
 let http_method_of_string = function
   | "GET" -> Some GET
@@ -78,7 +78,7 @@ let http_method_of_string = function
   | "OPTIONS" -> Some OPTIONS
   | "TRACE" -> Some TRACE
   | "PATCH" -> Some PATCH
-  | _ -> None;;
+  | _ -> None
 
 let parse_http_header =
   let parse_method = P.string_if (fun c -> (c >= 'A') && (c <= 'Z')) in
@@ -91,14 +91,14 @@ let parse_http_header =
                next Parse.word (fun version ->
                  next Parse.crlf (fun _ ->
                    parse_http_header_contents http_method target version)))))
-       | None -> error "Wrong HTTP method"));;
+       | None -> error "Wrong HTTP method"))
 
 let clear_files {Data.parameters; _} =
   let proc _ = function
     | {Parameter.value = File {path; _}; _} ->
         (try Sys.remove path with | Sys_error _ -> ())
     | _ -> () in
-  Hashtbl.iter proc parameters;;
+  Hashtbl.iter proc parameters
 
 let parse_body (header: Header.t) input output (settings: Settings.t)
                continue =
@@ -131,12 +131,11 @@ let parse_body (header: Header.t) input output (settings: Settings.t)
     | _ -> Lwt.return None in
 
   let url_parameters str parameters_tbl =
-    match Parse.query (P.stream_of_string str 0) with
-    | P.Parse_ok (q, _) ->
+    match Parse.query (P.Stream.of_string str) with
+    | Ok (q, _) ->
         let parameters = parameters_of_query parameters_tbl q in
         Lwt.return {Data.parameters = parameters; body = None}
-    | P.Parse_error (_, _) ->
-        Lwt.fail (Parse.Parse_error "Broken URL parameters") in
+    | Error (_, _) -> Lwt.fail (Parse.Parse_error "Broken URL parameters") in
 
   let post_url_parameters header input parameters =
     match%lwt read_post_data header input with
@@ -168,5 +167,5 @@ let parse_body (header: Header.t) input output (settings: Settings.t)
   | POST | PATCH | PUT -> post_parameters header input
   | GET | HEAD | DELETE ->
       Lwt.return {Data.parameters = get_parameters header; body = None}
-  | _ -> Lwt.fail (Wrong_method "");;
+  | _ -> Lwt.fail (Wrong_method "")
 

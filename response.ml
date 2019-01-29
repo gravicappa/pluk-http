@@ -3,7 +3,7 @@
   All rights reserved. This file is distributed under the terms of the
   GNU Lesser General Public License version 3 with OCaml linking exception *)
 
-open Base;;
+open Base
 
 type response_code =
   | Ok
@@ -15,12 +15,12 @@ type response_code =
   | Forbidden
   | Method_not_allowed 
   | Not_implemented
-  | Internal_error ;;
+  | Internal_error 
 
 type body =
   | String of string
   | Bytes of bytes
-  | Proc of int option * (Lwt_io.output_channel -> unit Lwt.t) ;;
+  | Proc of int option * (Lwt_io.output_channel -> unit Lwt.t) 
 
 type t = {
   mutable code : int;
@@ -31,12 +31,12 @@ type t = {
   mutable body: body;
   mutable header_printed: bool;
   mutable settings: Settings.t;
-};;
+}
 
 let create ?(code = 200) ?(body = (String "")) ?content_type
            ?content_disposition ?(settings = Settings.create ()) () =
    {code; body; content_type; content_disposition; settings;
-   cookies = []; header = []; header_printed = false};;
+   cookies = []; header = []; header_printed = false}
 
 let int_of_code = function
   | Ok -> 200
@@ -48,7 +48,7 @@ let int_of_code = function
   | Forbidden -> 403
   | Method_not_allowed -> 405
   | Not_implemented -> 501
-  | Internal_error -> 500 ;;
+  | Internal_error -> 500 
 
 let response_codes = [
   (100, "Continue");
@@ -65,7 +65,7 @@ let response_codes = [
   (500, "Internal Server Error");
   (501, "Not Implemented");
   (520, "Unknown Error")
-];;
+]
 
 let respond_header response output =
   let buf = Buffer.create 256 in
@@ -110,7 +110,7 @@ let respond_header response output =
   Buffer.add_string buf "\r\n";
   response.header_printed <- true;
   let bytes = (Buffer.to_bytes buf) in
-  Lwt_io.write_from_exactly output bytes 0 (Buffer.length buf);;
+  Lwt_io.write_from_exactly output bytes 0 (Buffer.length buf)
 
 let respond response output =
   let%lwt () = respond_header response output in
@@ -123,10 +123,10 @@ let respond response output =
       Lwt_io.flush output
   | Proc (_, proc) ->
       let%lwt () = proc output in
-      Lwt_io.flush output;;
+      Lwt_io.flush output
 
 let add_header response key value =
-  response.header <- (key, value) :: response.header;;
+  response.header <- (key, value) :: response.header
 
 let add_cookie response cookie =
-  response.cookies <- cookie :: response.cookies;;
+  response.cookies <- cookie :: response.cookies

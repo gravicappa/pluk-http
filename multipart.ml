@@ -3,10 +3,10 @@
   All rights reserved. This file is distributed under the terms of the
   GNU Lesser General Public License version 3 with OCaml linking exception *)
 
-open Base;;
-module P = Pluk_parser;;
+open Base
+module P = Pluk_parser
 
-let file_prefix = "pluk-http-upload-";;
+let file_prefix = "pluk-http-upload-"
 
 let index_from_to_opt bytes start finish char =
   let rec loop i =
@@ -17,7 +17,7 @@ let index_from_to_opt bytes start finish char =
         loop (i + 1)
     end else
       None in
-  loop start;;
+  loop start
 
 let limited_reader input len =
   let read_limited len block start finish =
@@ -32,7 +32,7 @@ let limited_reader input len =
 
   match len with
   | Some n -> read_limited (ref n)
-  | None -> read_unlimited;;
+  | None -> read_unlimited
 
 let equals_from_to a a_pos b b_pos n =
   let rec loop a_i b_i i =
@@ -43,12 +43,12 @@ let equals_from_to a a_pos b b_pos n =
         false
     end else
       true in
-  loop a_pos b_pos 0;;
+  loop a_pos b_pos 0
 
-let header_end = Bytes.of_string "\r\n\r\n";;
+let header_end = Bytes.of_string "\r\n\r\n"
 
 let bytes_starts_with bytes off a b =
-  ((Bytes.get bytes off) = a) && ((Bytes.get bytes (off + 1)) = b);;
+  ((Bytes.get bytes off) = a) && ((Bytes.get bytes (off + 1)) = b)
 
 let open_receiving_file =
   let perm = 0o660 in
@@ -56,7 +56,7 @@ let open_receiving_file =
     let prefix = file_prefix in
     match dir with
     | Some temp_dir -> Lwt_io.open_temp_file ~temp_dir ~perm ~prefix ()
-    | None -> Lwt_io.open_temp_file ~perm ~prefix ();;
+    | None -> Lwt_io.open_temp_file ~perm ~prefix ()
 
 let fold_input_till reader block boundary proc acc =
   let rec search bytes off start finish acc =
@@ -83,13 +83,13 @@ let fold_input_till reader block boundary proc acc =
     | n -> search bytes start start (finish + n) acc in
 
   let bytes, start, finish = block in
-  search bytes start start finish acc;;
+  search bytes start start finish acc
 
 type f = {
   fold_input: 'a. bytes * int * int -> bytes ->
               (bytes -> int -> int -> 'a -> 'a Lwt.t) ->
               'a -> ((bytes * int * int) * 'a) Lwt.t
-};;
+}
 
 let multi {fold_input} boundary bytes dir test_file tbl =
   let boundary = Bytes.cat (Bytes.of_string "\r\n--") boundary in
@@ -119,10 +119,10 @@ let multi {fold_input} boundary bytes dir test_file tbl =
 
   let read_header buf =
     Buffer.add_string buf "\r\n\r\n";
-    let stream = P.stream_of_bytes (Buffer.to_bytes buf) 0 in
+    let stream = P.Stream.of_bytes (Buffer.to_bytes buf) in
     match Parse.http_header_fields stream with
-    | Parse_ok (fields, _) -> fields
-    | Parse_error (err, _) -> raise (Parse.Parse_error ("header: " ^ err)) in
+    | Ok (fields, _) -> fields
+    | Error (err, _) -> raise (Parse.Parse_error ("header: " ^ err)) in
 
   let read_part_string name block =
     let buf = Buffer.create 16 in
@@ -166,10 +166,10 @@ let multi {fold_input} boundary bytes dir test_file tbl =
   Bytes.set bytes 0 '\r';
   Bytes.set bytes 1 '\n';
   let%lwt block, () = fold_input (bytes, 0, 2) boundary to_null () in
-  loop block;;
+  loop block
 
 let parse input length boundary bytes dir test_file tbl =
   let boundary = Bytes.of_string boundary in
   let fold_input block boundary proc acc =
     fold_input_till (limited_reader input length) block boundary proc acc in
-  multi {fold_input} boundary bytes dir test_file tbl;;
+  multi {fold_input} boundary bytes dir test_file tbl

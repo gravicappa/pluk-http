@@ -3,10 +3,10 @@
   All rights reserved. This file is distributed under the terms of the
   GNU Lesser General Public License version 3 with OCaml linking exception *)
 
-open Base;;
-module P = Pluk_parser;;
+open Base
+module P = Pluk_parser
 
-exception Parse_error of string;;
+exception Parse_error of string
 
 type header_fields = {
   generic: (string, string) Hashtbl.t;
@@ -14,26 +14,26 @@ type header_fields = {
   mutable content_length: int option;
   mutable content_type: Content_type.t option;
   mutable content_disposition: Content_disposition.t option;
-};;
+}
 
 let str_percent_parser test =
   P.(string_of (some_of [next (satisfies ((=) '%')) (fun _ ->
                            next (number_n 16 2) (fun x s ->
-                             Parse_ok (Char.chr x, s)));
-                         satisfies test]));;
+                             Ok (Char.chr x, s)));
+                         satisfies test]))
 
-let word = P.string_if ((<) ' ');;
-let ws = P.(satisfy zero_or_many ((>=) ' '));;
+let word = P.string_if ((<) ' ')
+let ws = P.(satisfy zero_or_many ((>=) ' '))
 
-let space = P.exact_item ' ';;
+let space = P.exact_item ' '
 
 let spaces =
   let is_space c = (c = ' ') || (c = '\t') in
-  P.(satisfy zero_or_many is_space);;
+  P.(satisfy zero_or_many is_space)
 
-let crlf = P.(some_of [exact_string "\n"; exact_string "\r\n"]);;
+let crlf = P.(some_of [exact_string "\n"; exact_string "\r\n"])
 
-let either element default = P.some_of [element; P.const default];;
+let either element default = P.some_of [element; P.const default]
 
 let delimited delim element =
   P.(some_of [(convert
@@ -42,14 +42,14 @@ let delimited delim element =
                  zero_or_many [x] (fun acc ->
                    next delim (fun _ ->
                      next element (fun x s ->
-                       Parse_ok (x :: acc, s)))))));
-              const []]);;
+                       Ok (x :: acc, s)))))));
+              const []])
 
 let spaced_item item =
   P.(next spaces (fun _ ->
        next item (fun _ ->
          next spaces (fun _ s ->
-           Parse_ok ((), s)))));;
+           Ok ((), s)))))
 
 let content_type =
   let delim = spaced_item (P.exact_item ';') in
@@ -58,14 +58,14 @@ let content_type =
     P.(next (string_if (element '=')) (fun key ->
          next (exact_item '=') (fun _ ->
            next (string_if (element ';')) (fun value s ->
-             Parse_ok ((key, value), s))))) in
+             Ok ((key, value), s))))) in
   let variants = P.next delim (fun _ -> delimited delim entry) in
   P.(next (string_if (element ';')) (fun media_type ->
        next (either variants []) (fun alist s ->
         let charset = (List.assoc_opt "charset" alist) in
         let boundary = (List.assoc_opt "boundary" alist) in
-        Parse_ok (Content_type.create media_type ~charset ~boundary (),
-                 s))));;
+        Ok (Content_type.create media_type ~charset ~boundary (),
+                 s))))
 
 let content_disposition =
   let delim = spaced_item (P.exact_item ';') in
@@ -74,19 +74,19 @@ let content_disposition =
     P.(next (exact_item '"') (fun _ ->
          next parser (fun x ->
            next (exact_item '"') (fun _ s ->
-             Parse_ok (x, s))))) in
+             Ok (x, s))))) in
   let entry_value = P.(some_of [quoted_value (string_if ((<>) '"'));
                                 string_if (element ';')]) in
   let entry =
     P.(next (string_if (element '=')) (fun key ->
          next (exact_item '=') (fun _ ->
            next entry_value (fun value s ->
-             Parse_ok ((key, value), s))))) in
+             Ok ((key, value), s))))) in
   let variants = P.next delim (fun _ -> delimited delim entry) in
   let all_true _ = true in
   let str_pc str =
-    match (str_percent_parser all_true (P.stream_of_string str 0)) with
-    | Parse_ok (str, _) -> Some str
+    match (str_percent_parser all_true (P.Stream.of_string str)) with
+    | Ok (str, _) -> Some str
     | _ -> None in
   let decode = function
     | Some x -> (str_pc x)
@@ -107,7 +107,7 @@ let content_disposition =
          let name = (List.assoc_opt "name" alist) in
          let filename = choose (List.assoc_opt "filename" alist)
                                (decode (List.assoc_opt "filename*" alist)) in
-         Parse_ok ({Content_disposition.mode; name; filename}, s))));;
+         Ok ({Content_disposition.mode; name; filename}, s))))
 
 let query =
   let item_test c = (c > ' ') && (c <> '=') && (c <> '&') && (c <> '#') in
@@ -115,50 +115,50 @@ let query =
     P.(next (str_percent_parser item_test) (fun key ->
          next (exact_item '=') (fun _ ->
            next (str_percent_parser item_test) (fun value s ->
-             Parse_ok ((key, value), s))))) in
-  delimited (P.exact_item '&') item;;
+             Ok ((key, value), s))))) in
+  delimited (P.exact_item '&') item
 
 let uri =
   let scheme =
     P.(next (string_if (fun c -> (c > ' ') && (c <> ':'))) (fun scheme ->
          next (exact_item ':') (fun _ s ->
-           Parse_ok (scheme, s)))) in
+           Ok (scheme, s)))) in
   let userinfo_pass = 
     P.(next (exact_item ':') (fun _ ->
          next (str_percent_parser ((<>) '@')) (fun pass s ->
-           Parse_ok (pass, s)))) in
+           Ok (pass, s)))) in
   let userinfo =
     P.(next (str_percent_parser (fun x -> (x <> ':') && (x <> '@')))
             (fun user ->
               next (either userinfo_pass "") (fun pass ->
                 next (exact_item '@') (fun _ s ->
-                  Parse_ok ((user, pass), s))))) in
+                  Ok ((user, pass), s))))) in
   let host = P.string_if (fun c -> (c > ' ') && (c <> ':') && (c <> '/')) in
   let port = P.(next (exact_item ':') (fun _ ->
     next (number 10) (fun port s ->
-      Parse_ok (Some port, s)))) in
+      Ok (Some port, s)))) in
   let path_test c = (c > ' ') && (c <> '/') && (c <> '?') && (c <> '#') in
   let path = 
     P.(next (delimited (exact_item '/') (string_if path_test))
-            (fun path s -> Parse_ok (path, s))) in
+            (fun path s -> Ok (path, s))) in
   let authority =
     P.(next (either userinfo ("", "")) (fun (user, pass) ->
       next host (fun host ->
         next (either port None) (fun port s ->
-          Parse_ok ((user, pass, host, port), s))))) in
+          Ok ((user, pass, host, port), s))))) in
   let hier_auth_path_abempty =
     P.(next (exact_string "//") (fun _ ->
       next authority (fun (user, pass, host, port) ->
         next (exact_item '/') (fun _ ->
           next (either path []) (fun path s ->
-            Parse_ok ((user, pass, host, port, path), s)))))) in
+            Ok ((user, pass, host, port, path), s)))))) in
   let hier_path_abs =
     P.(next (exact_item '/') (fun _ ->
          next (either path []) (fun path s ->
-           Parse_ok (("", "", "", None, path), s)))) in
+           Ok (("", "", "", None, path), s)))) in
   let hier_path_rootless =
     P.(next (either path []) (fun path s ->
-         Parse_ok (("", "", "", None, path), s))) in
+         Ok (("", "", "", None, path), s))) in
   let hier_path_empty = P.const ("", "", "", None, []) in
   let hier = P.some_of [hier_auth_path_abempty;
                         hier_path_abs;
@@ -166,23 +166,23 @@ let uri =
                         hier_path_empty] in
   let query = 
     P.(next (exact_item '?') (fun _ ->
-         next query (fun query s ->
-           Parse_ok (query, s)))) in
+        next query (fun query s ->
+          Ok (query, s)))) in
   let fragment = 
     P.(next (exact_item '#') (fun _ ->
          next (string_if ((<) ' ')) (fun fragment s ->
-           Parse_ok (fragment, s)))) in
+           Ok (fragment, s)))) in
   P.(next (either scheme "") (fun proto ->
       next (either hier ("", "", "", None, []))
            (fun (user, password, host, port, path) ->
               next (either query []) (fun query ->
                 next (either fragment "") (fun fragment s ->
-                  Parse_ok ({Uri.protocol = proto; user; password; host; port;
-                             path; query; fragment}, s))))));;
+                  Ok ({Uri.protocol = proto; user; password; host; port;
+                             path; query; fragment}, s))))))
 
 let exact_string_ci string =
   let test_ci a b = (Char.lowercase_ascii a) = b in
-  P.match_string string test_ci ;;
+  P.match_string string test_ci 
 
 (*let field key = P.convert (fun x -> (key, x));; FIXME: remove *)
 
@@ -192,8 +192,8 @@ let cookie =
     P.(next (str_percent_parser ((<>) '=')) (fun key ->
          next (exact_item '=') (fun _ ->
            next (str_percent_parser not_delim)
-                (fun value s -> Parse_ok ((key, value), s))))) in
-  delimited (P.exact_string "; ") element;;
+                (fun value s -> Ok ((key, value), s))))) in
+  delimited (P.exact_string "; ") element
 
 let http_header_field (cell: header_fields) =
   let field key_parser value_parser proc =
@@ -204,7 +204,7 @@ let http_header_field (cell: header_fields) =
                next value_parser (fun value ->
                  next crlf (fun _ s ->
                    ignore (proc (key, value));
-                   Parse_ok (cell, s)))))))) in
+                   Ok (cell, s)))))))) in
   let key = P.string_if (fun c -> (c <> ' ') && (c <> ':')) in
   let value = P.string_if (fun c -> (c <> '\n') && (c <> '\r')) in
   let cookie = field (exact_string_ci "cookie") cookie (fun (_, cs) ->
@@ -220,7 +220,7 @@ let http_header_field (cell: header_fields) =
   let generic = field key value (fun (k, v) ->
                                       let k = String.lowercase_ascii k in
                                       Hashtbl.add cell.generic k v) in
-  P.some_of [cookie; ctype; cdisp; clen; generic];;
+  P.some_of [cookie; ctype; cdisp; clen; generic]
 
 let http_header_fields stream =
   let cell = {generic = Hashtbl.create 1; cookies = Hashtbl.create 1;
@@ -228,5 +228,5 @@ let http_header_fields stream =
               content_length = None} in
   let proc cell = 
     P.next (http_header_field cell) (fun cell s ->
-      Parse_ok (cell, s)) in
-  P.zero_or_many cell proc stream;;
+      Ok (cell, s)) in
+  P.zero_or_many cell proc stream

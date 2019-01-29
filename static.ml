@@ -3,13 +3,13 @@
   All rights reserved. This file is distributed under the terms of the
   GNU Lesser General Public License version 3 with OCaml linking exception *)
 
-open Base;;
+open Base
 
-let content_types = Hashtbl.create 16;;
+let content_types = Hashtbl.create 16
 let content_type_octet_stream = Content_type.create "application/octet-stream"
                                                     ~charset:(Some "binary")
-                                                    ();;
-let invalid_content_type = Content_type.create "" ();;
+                                                    ()
+let invalid_content_type = Content_type.create "" ()
 
 let () =
   let charset = Some "UTF-8" in
@@ -23,18 +23,18 @@ let () =
     (".jpg", Content_type.create "image/jpeg" ());
     (".jpeg", Content_type.create "image/jpeg" ());
     (".gif", Content_type.create "image/gif" ());
-  ];;
+  ]
 
 let content_type_of_filename path =
   match Hashtbl.find_opt content_types (Filename.extension path) with
   | Some content_type -> content_type
-  | None -> content_type_octet_stream;;
+  | None -> content_type_octet_stream
 
 let add_content_header (resp: Response.t) content_type mtime =
   resp.content_type <- Some content_type;
   Response.add_header resp "Date" (Time.to_string (Unix.time ()));
   Response.add_header resp "Last-Modified" (Time.to_string mtime);
-  Response.add_header resp "Cache-Control" "private";;
+  Response.add_header resp "Cache-Control" "private"
 
 let string_content ?(content_type = content_type_octet_stream) str =
   let mtime = Unix.time () in
@@ -43,10 +43,10 @@ let string_content ?(content_type = content_type_octet_stream) str =
   fun _ _ ->
     let response = Response.create ~body:(Proc (Some len, write)) () in
     add_content_header response content_type mtime;
-    Lwt.return response;;
+    Lwt.return response
 
 let not_found () =
-  Lwt.return (Response.(create ~code: (int_of_code Not_found) ()));;
+  Lwt.return (Response.(create ~code: (int_of_code Not_found) ()))
 
 let file_content ?(content_type = invalid_content_type)
                  ?(buf_size = (1 lsl 20)) fs_path =
@@ -82,7 +82,7 @@ let file_content ?(content_type = invalid_content_type)
     if (path = []) && (Sys.file_exists fs_path) then
       serve_file req
     else
-      not_found ();;
+      not_found ()
 
 let normalize_path_within path =
   let rec loop acc = function
@@ -94,15 +94,15 @@ let normalize_path_within path =
     | "." :: path -> loop acc path
     | element :: path -> loop (element :: acc) path
     | [] -> Some (List.rev acc) in
-  loop [] path;;
+  loop [] path
 
 let path_append_join root path =
   let rec loop sep acc = function
     | element :: path -> loop "/" (acc ^ sep ^ element) path
     | [] -> acc in
-  loop (if root = "" then "" else "/") root path;;
+  loop (if root = "" then "" else "/") root path
 
-let dummy_dir_proc _ _ _ = not_found ();;
+let dummy_dir_proc _ _ _ = not_found ()
 
 let dir_content ?(buf_size = (1 lsl 20)) ?(dir_proc = dummy_dir_proc) dir_path
                 path req =
@@ -116,4 +116,4 @@ let dir_content ?(buf_size = (1 lsl 20)) ?(dir_proc = dummy_dir_proc) dir_path
           file_content ~buf_size fs_path path req
       end else
         not_found ()
-  | None -> not_found ();;
+  | None -> not_found ()

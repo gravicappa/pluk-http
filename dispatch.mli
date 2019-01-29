@@ -5,7 +5,7 @@
 
 (** Module [pluk-http]: dispatch definitions *)
 
-type t = string list -> Request.t -> Response.t Lwt.t;;
+type t = string list -> Request.t -> Response.t Lwt.t
 (** Dispatcher function type *)
 
 val dispatch:

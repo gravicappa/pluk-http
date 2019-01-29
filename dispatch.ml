@@ -3,10 +3,10 @@
   All rights reserved. This file is distributed under the terms of the
   GNU Lesser General Public License version 3 with OCaml linking exception *)
 
-open Base;;
-module P = Pluk_parser;;
+open Base
+module P = Pluk_parser
 
-type t = string list -> Request.t -> Response.t Lwt.t;;
+type t = string list -> Request.t -> Response.t Lwt.t
 
 let dispatch (input, output) settings proc =
   let read_header_buf input timeout_s next_timeout_s =
@@ -83,10 +83,9 @@ let dispatch (input, output) settings proc =
     maybe_continue (continue_allowed header)
 
   and parse_header header =
-    match (Request.parse_http_header (P.stream_of_bytes header 0)) with
-    | Parse_ok (header, _) -> do_request_and_continue header
-    | Parse_error (_, _) ->
-        Response.respond (Response.create ~code: 400 ()) output
+    match (Request.parse_http_header (P.Stream.of_bytes header)) with
+    | Ok (header, _) -> do_request_and_continue header
+    | Error (_, _) -> Response.respond (Response.create ~code: 400 ()) output
 
   and dispatch timeout_s =
     let settings_timeout_s = Some settings.timeout_s in
@@ -97,21 +96,21 @@ let dispatch (input, output) settings proc =
   let%lwt () = dispatch None in
   let%lwt () = Lwt_io.close input in
   let%lwt () = Lwt_io.close output in
-  Lwt.return_unit;;
+  Lwt.return_unit
 
 let fail_with_code_num code _ _ =
-  Lwt.return (Response.create ~code ());;
+  Lwt.return (Response.create ~code ())
 
 let fail_with_code code path req =
-  fail_with_code_num Response.(int_of_code code) path req;;
+  fail_with_code_num Response.(int_of_code code) path req
 
 let either test ?(fail = fail_with_code_num 400) proc path req =
-  (if test req then proc else fail) path req;;
+  (if test req then proc else fail) path req
 
 let method_only m proc path req =
   let test req = (Request.http_method req) = m in
   let fail = fail_with_code_num 405 in
-  either test ~fail proc path req;;
+  either test ~fail proc path req
 
 let select_method ?(fail = fail_with_code_num 405) list =
   let rec mk finish = function
@@ -123,19 +122,19 @@ let select_method ?(fail = fail_with_code_num 405) list =
           else
             p path req)
     | [] -> finish in
-  mk fail list;;
+  mk fail list
 
 let path_element ?(fail = fail_with_code_num 404) proc path req =
   match path with
   | [] -> fail [] req
-  | element :: path -> proc element path req;;
+  | element :: path -> proc element path req
 
 let path_element_int ?(fail = fail_with_code_num 404) proc path req =
   let proc element path req =
     match int_of_string_opt element with
     | Some x -> proc x path req
     | None -> fail (element :: path) req in
-  path_element proc ~fail path req;;
+  path_element proc ~fail path req
 
 let dir ?(fail = fail_with_code_num 404) ?(root = fail_with_code_num 404)
         list =
@@ -145,7 +144,7 @@ let dir ?(fail = fail_with_code_num 404) ?(root = fail_with_code_num 404)
     | Some proc -> proc path req 
     | None -> fail (element :: path) req in
   List.iter (fun (name, proc) -> Hashtbl.add tbl name proc) list;
-  path_element next ~fail:root;;
+  path_element next ~fail:root
 
 let with_settings proc next path req =
-  next path {req with Request.settings = (proc req)};;
+  next path {req with Request.settings = (proc req)}
