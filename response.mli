@@ -40,6 +40,8 @@ type t = {
 val create:
   ?code:int ->
   ?body:body ->
+  ?header:(string * string) list ->
+  ?cookies:Base.Cookie.t list ->
   ?content_type:Base.Content_type.t ->
   ?content_disposition:Base.Content_disposition.t ->
   ?settings:Base.Settings.t -> unit -> t

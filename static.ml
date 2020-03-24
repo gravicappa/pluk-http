@@ -113,7 +113,7 @@ let dir_content ?(buf_size = (1 lsl 20)) ?(dir_proc = dummy_dir_proc) dir_path
         if Sys.is_directory fs_path then
           dir_proc fs_path path req
         else
-          file_content ~buf_size fs_path path req
+          file_content ~buf_size fs_path [] req
       end else
         not_found ()
   | None -> not_found ()

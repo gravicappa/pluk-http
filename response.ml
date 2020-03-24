@@ -33,10 +33,11 @@ type t = {
   mutable settings: Settings.t;
 }
 
-let create ?(code = 200) ?(body = (String "")) ?content_type
-           ?content_disposition ?(settings = Settings.create ()) () =
-   {code; body; content_type; content_disposition; settings;
-   cookies = []; header = []; header_printed = false}
+let create ?(code = 200) ?(body = (String "")) ?(header = []) ?(cookies = [])
+           ?content_type ?content_disposition ?(settings = Settings.create ())
+           () =
+  {code; body; content_type; content_disposition; settings;
+   cookies; header; header_printed = false}
 
 let int_of_code = function
   | Ok -> 200
