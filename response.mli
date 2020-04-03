@@ -6,16 +6,60 @@
 (** Module [pluk-http]: response definitions *)
 
 type response_code =
+  | Continue
+  | Switching_protocols
+  | Early_hints
   | Ok
-  | Not_found
-  | Move_permanently
+  | Created
+  | Accepted
+  | Non_authoritative_information
+  | No_content
+  | Reset_content
+  | Partial_content
+  | Multiple_choices
+  | Moved_permanently
   | Found
+  | See_other
+  | Not_modified
+  | Temporary_redirect
+  | Permanent_redirect
   | Bad_request
   | Unauthorized
+  | Payment_required
   | Forbidden
-  | Method_not_allowed 
+  | Not_found
+  | Method_not_allowed
+  | Not_acceptable
+  | Proxy_authentication_required
+  | Request_timeout
+  | Conflict
+  | Gone
+  | Length_required
+  | Precondition_failed
+  | Payload_too_large
+  | Uri_too_long
+  | Unsupported_media_type
+  | Range_not_satisfiable
+  | Expectation_failed
+  | Im_a_teapot
+  | Unprocessable_entity
+  | Too_early
+  | Upgrade_required
+  | Precondition_required
+  | Too_many_requests
+  | Request_header_fields_too_large
+  | Unavailable_for_legal_reasons
+  | Internal_server_error
   | Not_implemented
-  | Internal_error
+  | Bad_gateway
+  | Service_unavailable
+  | Gateway_timeout
+  | Http_version_not_supported
+  | Variant_also_negotiates
+  | Insufficient_storage
+  | Loop_detected
+  | Not_extended
+  | Network_authentication_required
 (** Response codes *)
 
 type body =
