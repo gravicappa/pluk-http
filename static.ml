@@ -36,19 +36,20 @@ let add_content_header (resp: Response.t) content_type mtime =
   Response.add_header resp "Last-Modified" (Time.to_string mtime);
   Response.add_header resp "Cache-Control" "private"
 
-let string_content ?(content_type = content_type_octet_stream) str =
+let string_content ?(content_type = content_type_octet_stream)
+                   ?(header = []) str =
   let mtime = Unix.time () in
   let len = String.length str in
   let write output = Lwt_io.write output str in
   fun _ _ ->
-    let response = Response.create ~body:(Proc (Some len, write)) () in
-    add_content_header response content_type mtime;
-    Lwt.return response
+    let resp = Response.create ~header ~body:(Proc (Some len, write)) () in
+    add_content_header resp content_type mtime;
+    Lwt.return resp
 
 let not_found () =
   Lwt.return (Response.(create ~code: (int_of_code Not_found) ()))
 
-let file_content ?(content_type = invalid_content_type)
+let file_content ?(content_type = invalid_content_type) ?(header = [])
                  ?(buf_size = (1 lsl 20)) fs_path =
 
   let content_type = (if content_type <> invalid_content_type
@@ -74,7 +75,7 @@ let file_content ?(content_type = invalid_content_type)
   let serve_file _ =
     let stats = Unix.stat fs_path in
     let body = Response.Proc (Some stats.st_size, write) in
-    let response = Response.create ~body () in
+    let response = Response.create ~body ~header () in
     add_content_header response content_type stats.st_mtime;
     Lwt.return response in
 
@@ -104,8 +105,8 @@ let path_append_join root path =
 
 let dummy_dir_proc _ _ _ = not_found ()
 
-let dir_content ?(buf_size = (1 lsl 20)) ?(dir_proc = dummy_dir_proc) dir_path
-                path req =
+let dir_content ?(buf_size = (1 lsl 20)) ?(dir_proc = dummy_dir_proc)
+                ?(header = []) dir_path path req =
   match normalize_path_within path with
   | Some path ->
       let fs_path = path_append_join dir_path path in
@@ -113,7 +114,7 @@ let dir_content ?(buf_size = (1 lsl 20)) ?(dir_proc = dummy_dir_proc) dir_path
         if Sys.is_directory fs_path then
           dir_proc fs_path path req
         else
-          file_content ~buf_size fs_path [] req
+          file_content ~header ~buf_size fs_path [] req
       end else
         not_found ()
   | None -> not_found ()
