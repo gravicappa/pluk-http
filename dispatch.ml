@@ -148,3 +148,19 @@ let dir ?(fail = fail_with_code_num 404) ?(root = fail_with_code_num 404)
 
 let with_settings proc next path req =
   next path {req with Request.settings = (proc req)}
+
+let with_simple_cors proc path req =
+  let cors_headers = [
+    "Access-Control-Allow-Origin", "*";
+    "Access-Control-Allow-Methods", "GET, POST, HEAD, DELETE";
+    "Access-Control-Allow-Headers", "Content-Type, Accept";
+    (* "Access-Control-Allow-Credentials", "true"; *)
+  ] in
+  match Request.http_method req with
+  | OPTIONS ->
+      Response.create ~code: 204 ~header: cors_headers ()
+      |> Lwt.return
+  | _ ->
+      let%lwt resp = proc path req in
+      List.iter (fun (k, v) -> Response.add_header resp k v) cors_headers;
+      Lwt.return resp

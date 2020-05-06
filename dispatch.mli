@@ -57,8 +57,10 @@ val dir: ?fail:t -> ?root:t -> (string * t) list -> t
 (** Creates dispatch function that dispatches over a list of functions using
     first element of target uri path.
     Default value of [fail] is [fail_with_code Response.Not_found].
-    Default value of [root] is [fail_with_code Response.Not_found].
- *)
+    Default value of [root] is [fail_with_code Response.Not_found]. *)
 
 val with_settings: (Request.t -> Base.Settings.t) -> t -> t
-(** *)
+(** Wraps dispatch function with altered settings *)
+
+val with_simple_cors: t -> t
+(** Wraps *)
