@@ -123,55 +123,74 @@ let uri =
     P.(next (string_if (fun c -> (c > ' ') && (c <> ':'))) (fun scheme ->
          next (exact_item ':') (fun _ s ->
            Ok (scheme, s)))) in
-  let userinfo_pass = 
+
+  let userinfo_pass =
     P.(next (exact_item ':') (fun _ ->
          next (str_percent_parser ((<>) '@')) (fun pass s ->
            Ok (pass, s)))) in
+
   let userinfo =
     P.(next (str_percent_parser (fun x -> (x <> ':') && (x <> '@')))
             (fun user ->
               next (either userinfo_pass "") (fun pass ->
                 next (exact_item '@') (fun _ s ->
                   Ok ((user, pass), s))))) in
+
   let host = P.string_if (fun c -> (c > ' ') && (c <> ':') && (c <> '/')) in
+
   let port = P.(next (exact_item ':') (fun _ ->
     next (number 10) (fun port s ->
       Ok (Some port, s)))) in
+
   let path_test c = (c > ' ') && (c <> '/') && (c <> '?') && (c <> '#') in
-  let path = 
+
+  let path =
     P.(next (delimited (exact_item '/') (string_if path_test))
             (fun path s -> Ok (path, s))) in
+
   let authority =
     P.(next (either userinfo ("", "")) (fun (user, pass) ->
       next host (fun host ->
         next (either port None) (fun port s ->
           Ok ((user, pass, host, port), s))))) in
+
   let hier_auth_path_abempty =
     P.(next (exact_string "//") (fun _ ->
       next authority (fun (user, pass, host, port) ->
         next (exact_item '/') (fun _ ->
           next (either path []) (fun path s ->
             Ok ((user, pass, host, port, path), s)))))) in
+
   let hier_path_abs =
     P.(next (exact_item '/') (fun _ ->
          next (either path []) (fun path s ->
            Ok (("", "", "", None, path), s)))) in
+
   let hier_path_rootless =
     P.(next (either path []) (fun path s ->
          Ok (("", "", "", None, path), s))) in
   let hier_path_empty = P.const ("", "", "", None, []) in
+
   let hier = P.some_of [hier_auth_path_abempty;
                         hier_path_abs;
                         hier_path_rootless;
                         hier_path_empty] in
-  let query = 
+
+  let query_start =
     P.(next (exact_item '?') (fun _ ->
+      next (either (exact_item '&') '&') (fun _ s ->
+        Ok ((), s)))) in
+
+  let query =
+    P.(next query_start (fun () ->
         next query (fun query s ->
           Ok (query, s)))) in
-  let fragment = 
+
+  let fragment =
     P.(next (exact_item '#') (fun _ ->
          next (string_if ((<) ' ')) (fun fragment s ->
            Ok (fragment, s)))) in
+
   P.(next (either scheme "") (fun proto ->
       next (either hier ("", "", "", None, []))
            (fun (user, password, host, port, path) ->
@@ -182,13 +201,13 @@ let uri =
 
 let exact_string_ci string =
   let test_ci a b = (Char.lowercase_ascii a) = b in
-  P.match_string string test_ci 
+  P.match_string string test_ci
 
 (*let field key = P.convert (fun x -> (key, x));; FIXME: remove *)
 
 let cookie =
   let not_delim c = (c > ' ') && (c <> ';') in
-  let element = 
+  let element =
     P.(next (str_percent_parser ((<>) '=')) (fun key ->
          next (exact_item '=') (fun _ ->
            next (str_percent_parser not_delim)
@@ -226,7 +245,7 @@ let http_header_fields stream =
   let cell = {generic = Hashtbl.create 1; cookies = Hashtbl.create 1;
               content_type = None; content_disposition = None;
               content_length = None} in
-  let proc cell = 
+  let proc cell =
     P.next (http_header_field cell) (fun cell s ->
       Ok (cell, s)) in
   P.zero_or_many cell proc stream
