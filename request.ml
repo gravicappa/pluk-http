@@ -60,13 +60,16 @@ let cookie key req = Hashtbl.find req.header.cookies key
 let cookie_opt key req = Hashtbl.find_opt req.header.cookies key
 
 let parse_http_header_contents http_method target http_version =
-  P.next Parse.http_header_fields (fun cell s ->
-    Ok ({Header.http_method; target; http_version;
-               fields = cell.generic; cookies = cell.cookies;
-               content_length = cell.content_length;
-               content_type = cell.content_type;
-               content_disposition = cell.content_disposition},
-              s))
+  P.next Parse.http_header_fields @@ fun cell s ->
+    Ok ({ Header.http_method;
+          target;
+          http_version;
+          fields = cell.generic;
+          cookies = cell.cookies;
+          content_length = cell.content_length;
+          content_type = cell.content_type;
+          content_disposition = cell.content_disposition},
+        s)
 
 let http_method_of_string = function
   | "GET" -> Some GET
@@ -81,17 +84,18 @@ let http_method_of_string = function
   | _ -> None
 
 let parse_http_header =
-  let parse_method = P.string_if (fun c -> (c >= 'A') && (c <= 'Z')) in
-  P.(next parse_method (fun m ->
+  let parse_method = P.into_string_if (fun c -> (c >= 'A') && (c <= 'Z')) in
+
+  P.(next parse_method @@ fun m ->
        match (http_method_of_string m) with
        | Some http_method ->
-         next Parse.space (fun _ ->
-           next Parse.uri (fun target ->
-             next Parse.space (fun _ -> 
-               next Parse.word (fun version ->
-                 next Parse.crlf (fun _ ->
-                   parse_http_header_contents http_method target version)))))
-       | None -> error "Wrong HTTP method"))
+           next Parse.space @@ fun _ ->
+             next Parse.uri @@ fun target ->
+               next Parse.space @@ fun _ -> 
+                 next Parse.word @@ fun version ->
+                   next Parse.crlf @@ fun _ ->
+                     parse_http_header_contents http_method target version
+       | None -> error (msg "Wrong HTTP method"))
 
 let clear_files {Data.parameters; _} =
   let proc _ = function
@@ -110,7 +114,7 @@ let parse_body (header: Header.t) input output (settings: Settings.t)
     let proc x =
       match param_of_query x with
       | {Parameter.name = name; _} as p -> Hashtbl.add tbl name p in
-    let () = List.iter proc query in
+    List.iter proc query;
     tbl in
 
   let get_parameters (header: Header.t) =
@@ -134,8 +138,8 @@ let parse_body (header: Header.t) input output (settings: Settings.t)
     match Parse.query (P.Stream.of_string str) with
     | Ok (q, _) ->
         let parameters = parameters_of_query parameters_tbl q in
-        Lwt.return {Data.parameters = parameters; body = None}
-    | Error (_, _) -> Lwt.fail (Parse.Parse_error "Broken URL parameters") in
+        Lwt.return { Data.parameters = parameters; body = None }
+    | Error _ -> Lwt.fail (Parse.Parse_error "Broken URL parameters") in
 
   let post_url_parameters header input parameters =
     match%lwt read_post_data header input with

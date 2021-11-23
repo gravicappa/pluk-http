@@ -73,7 +73,7 @@ let dispatch (input, output) settings proc =
 
   let rec maybe_continue allowed = 
     match settings with
-    | {keep_alive_timeout_s = (Some sec); _} when allowed ->
+    | { keep_alive_timeout_s = Some sec; _ } when allowed ->
         dispatch (Some sec)
     | _ -> Lwt.return_unit
 

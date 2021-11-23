@@ -122,7 +122,11 @@ let multi {fold_input} boundary bytes dir test_file tbl =
     let stream = P.Stream.of_bytes (Buffer.to_bytes buf) in
     match Parse.http_header_fields stream with
     | Ok (fields, _) -> fields
-    | Error (err, _) -> raise (Parse.Parse_error ("header: " ^ err)) in
+    | Error (msg, _) ->
+        let str = msg
+                  |> P.string_of_msg
+                  |> Option.value ~default: "Unknown" in
+        raise (Parse.Parse_error str) in
 
   let read_part_string name block =
     let buf = Buffer.create 16 in
