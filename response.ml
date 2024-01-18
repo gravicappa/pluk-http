@@ -5,140 +5,22 @@
 
 open Base
 
-type response_code =
-  | Continue
-  | Switching_protocols
-  | Early_hints
-  | Ok
-  | Created
-  | Accepted
-  | Non_authoritative_information
-  | No_content
-  | Reset_content
-  | Partial_content
-  | Multiple_choices
-  | Moved_permanently
-  | Found
-  | See_other
-  | Not_modified
-  | Temporary_redirect
-  | Permanent_redirect
-  | Bad_request
-  | Unauthorized
-  | Payment_required
-  | Forbidden
-  | Not_found
-  | Method_not_allowed
-  | Not_acceptable
-  | Proxy_authentication_required
-  | Request_timeout
-  | Conflict
-  | Gone
-  | Length_required
-  | Precondition_failed
-  | Payload_too_large
-  | Uri_too_long
-  | Unsupported_media_type
-  | Range_not_satisfiable
-  | Expectation_failed
-  | Im_a_teapot
-  | Unprocessable_entity
-  | Too_early
-  | Upgrade_required
-  | Precondition_required
-  | Too_many_requests
-  | Request_header_fields_too_large
-  | Unavailable_for_legal_reasons
-  | Internal_server_error
-  | Not_implemented
-  | Bad_gateway
-  | Service_unavailable
-  | Gateway_timeout
-  | Http_version_not_supported
-  | Variant_also_negotiates
-  | Insufficient_storage
-  | Loop_detected
-  | Not_extended
-  | Network_authentication_required
-
 type body =
   | String of string
   | Bytes of bytes
   | Proc of int option * (Lwt_io.output_channel -> unit Lwt.t) 
 
 type t = {
-  mutable code : int;
+  code : int;
+  status: string;
   mutable content_type: Content_type.t option;
-  mutable content_disposition: Content_disposition.t option;
+  content_disposition: Content_disposition.t option;
   mutable cookies: Cookie.t list;
   mutable header: (string * string) list;
-  mutable body: body;
+  body: body;
   mutable header_printed: bool;
-  mutable settings: Settings.t;
+  settings: Settings.t;
 }
-
-let create ?(code = 200) ?(body = (String "")) ?(header = []) ?(cookies = [])
-           ?content_type ?content_disposition ?(settings = Settings.create ())
-           () =
-  {code; body; content_type; content_disposition; settings;
-   cookies; header; header_printed = false}
-
-
-let int_of_code = function
-  | Continue -> 100
-  | Switching_protocols -> 101
-  | Early_hints -> 103
-  | Ok -> 200
-  | Created -> 201
-  | Accepted -> 202
-  | Non_authoritative_information -> 203
-  | No_content -> 204
-  | Reset_content -> 205
-  | Partial_content -> 206
-  | Multiple_choices -> 300
-  | Moved_permanently -> 301
-  | Found -> 302
-  | See_other -> 303
-  | Not_modified -> 304
-  | Temporary_redirect -> 307
-  | Permanent_redirect -> 308
-  | Bad_request -> 400
-  | Unauthorized -> 401
-  | Payment_required -> 402
-  | Forbidden -> 403
-  | Not_found -> 404
-  | Method_not_allowed -> 405
-  | Not_acceptable -> 406
-  | Proxy_authentication_required -> 407
-  | Request_timeout -> 408
-  | Conflict -> 409
-  | Gone -> 410
-  | Length_required -> 411
-  | Precondition_failed -> 412
-  | Payload_too_large -> 413
-  | Uri_too_long -> 414
-  | Unsupported_media_type -> 415
-  | Range_not_satisfiable -> 416
-  | Expectation_failed -> 417
-  | Im_a_teapot -> 418
-  | Unprocessable_entity -> 422
-  | Too_early -> 425
-  | Upgrade_required -> 426
-  | Precondition_required -> 428
-  | Too_many_requests -> 429
-  | Request_header_fields_too_large -> 431
-  | Unavailable_for_legal_reasons -> 451
-  | Internal_server_error -> 500
-  | Not_implemented -> 501
-  | Bad_gateway -> 502
-  | Service_unavailable -> 503
-  | Gateway_timeout -> 504
-  | Http_version_not_supported -> 505
-  | Variant_also_negotiates -> 506
-  | Insufficient_storage -> 507
-  | Loop_detected -> 508
-  | Not_extended -> 510
-  | Network_authentication_required -> 511
 
 let response_codes = [
   (100, "Continue");
@@ -197,14 +79,24 @@ let response_codes = [
   (511, "Network Authentication Required");
 ]
 
+let create ?(code = 200) ?status ?(body = (String "")) ?(header = []) ?(cookies = [])
+           ?content_type ?content_disposition ?(settings = Settings.create ())
+           () =
+
+  let status = match status with
+               | Some s -> s
+               | None ->
+                   List.assoc_opt code response_codes
+                   |> Option.value ~default: "" in
+
+  { code; status; body; content_type; content_disposition; settings;
+    cookies; header; header_printed = false }
+
 let respond_header response output =
   let buf = Buffer.create 256 in
 
-  let resp_code_str code = List.assq code response_codes in
-
-  let pr_response buf code =
-    let code_str = resp_code_str code in
-    let line = Printf.sprintf "HTTP/1.1 %d %s\r\n" code code_str in
+  let pr_response buf code status =
+    let line = Printf.sprintf "HTTP/1.1 %d %s\r\n" code status in
     Buffer.add_string buf line in
 
   let add_hdr buf (k, v) =
@@ -232,7 +124,7 @@ let respond_header response output =
     Cookie.into_buffer cookie buf;
     Buffer.add_string buf "\r\n" in
 
-  pr_response buf response.code;
+  pr_response buf response.code response.status;
   List.iter (add_hdr buf) response.header;
   add_content_type buf response.content_type;
   add_content_length buf response.body;

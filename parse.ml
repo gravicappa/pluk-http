@@ -22,7 +22,9 @@ let str_percent_parser test =
       next (fixed_length_number ~radix: 16 2) @@ fun a ->
         ok (Char.chr a)) in
 
-  P.(into_string (or_ [ escaped; satisfies test ]))
+  let plus = P.(map_value (fun _ -> ' ') (exact_item '+')) in
+
+  P.(into_string (or_ [ escaped; plus; satisfies test ]))
 
 let word = P.into_string_if ((<) ' ')
 let ws = P.(satisfy fold ((>=) ' '))

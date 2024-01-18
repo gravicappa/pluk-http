@@ -98,21 +98,18 @@ let dispatch (input, output) settings proc =
   let%lwt () = Lwt_io.close output in
   Lwt.return_unit
 
-let fail_with_code_num code _ _ =
-  Lwt.return (Response.create ~code ())
+let fail_with_code ?status code _ _ =
+  Lwt.return (Response.create ~code ?status ())
 
-let fail_with_code code path req =
-  fail_with_code_num Response.(int_of_code code) path req
-
-let either test ?(fail = fail_with_code_num 400) proc path req =
+let either test ?(fail = fail_with_code 400) proc path req =
   (if test req then proc else fail) path req
 
 let method_only m proc path req =
   let test req = (Request.http_method req) = m in
-  let fail = fail_with_code_num 405 in
+  let fail = fail_with_code 405 in
   either test ~fail proc path req
 
-let select_method ?(fail = fail_with_code_num 405) list =
+let select_method ?(fail = fail_with_code 405) list =
   let rec mk finish = function
     | (m, proc) :: list ->
         let p = mk finish list in
@@ -124,19 +121,19 @@ let select_method ?(fail = fail_with_code_num 405) list =
     | [] -> finish in
   mk fail list
 
-let path_element ?(fail = fail_with_code_num 404) proc path req =
+let path_element ?(fail = fail_with_code 404) proc path req =
   match path with
   | [] -> fail [] req
   | element :: path -> proc element path req
 
-let path_element_int ?(fail = fail_with_code_num 404) proc path req =
+let path_element_int ?(fail = fail_with_code 404) proc path req =
   let proc element path req =
     match int_of_string_opt element with
     | Some x -> proc x path req
     | None -> fail (element :: path) req in
   path_element proc ~fail path req
 
-let dir ?(fail = fail_with_code_num 404) ?(root = fail_with_code_num 404)
+let dir ?(fail = fail_with_code 404) ?(root = fail_with_code 404)
         list =
   let tbl = Hashtbl.create (List.length list) in
   let next element path req =

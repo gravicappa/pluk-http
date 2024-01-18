@@ -20,13 +20,9 @@ val dispatch:
 
 *)
 
-val fail_with_code_num: int -> t
+val fail_with_code: ?status:string -> int -> t
 (** Creates dispatch function that produces empty response with given
-    HTTP status code *)
-
-val fail_with_code: Response.response_code -> t
-(** Like [fail_with_code_num] but takes HTTP status code as
-    [Response.response_code] *)
+    HTTP status *)
 
 val either: (Request.t -> bool) -> ?fail:t -> t -> t
 (** [either test ~fail proc] creates dispatch function that passes request to 

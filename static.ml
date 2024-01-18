@@ -46,8 +46,7 @@ let string_content ?(content_type = content_type_octet_stream)
     add_content_header resp content_type mtime;
     Lwt.return resp
 
-let not_found () =
-  Lwt.return (Response.(create ~code: (int_of_code Not_found) ()))
+let not_found () = Lwt.return Response.(create ~code: 404 ())
 
 let file_content ?(content_type = invalid_content_type) ?(header = [])
                  ?(buf_size = (1 lsl 20)) fs_path =
