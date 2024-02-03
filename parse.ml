@@ -162,7 +162,7 @@ let uri =
   let path_test c = (c > ' ') && (c <> '/') && (c <> '?') && (c <> '#') in
 
   let path =
-    P.(next (delimited (exact_item '/') (into_string_if path_test))
+    P.(next (delimited (exact_item '/') (str_percent_parser path_test))
             @@ fun path -> ok path) in
 
   let authority =
