@@ -34,8 +34,7 @@ module Content_type = struct
     boundary: string option;
   }
 
-  let create media_type ?(charset = None) ?(boundary = None) () =
-    { media_type; charset; boundary }
+  let create ?charset ?boundary media_type = { media_type; charset; boundary }
 
   let into_buffer {media_type; charset; boundary} buf =
     let add_variant buf key = function

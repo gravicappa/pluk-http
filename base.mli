@@ -43,9 +43,7 @@ sig
   }
   (** type *)
 
-  val create:
-    string ->
-    ?charset:string option -> ?boundary:string option -> unit -> t
+  val create: ?charset:string -> ?boundary:string -> string -> t
   (** Creates instance of Content_type.t *)
 
   val into_buffer: t -> Buffer.t -> unit

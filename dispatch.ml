@@ -93,10 +93,10 @@ let dispatch (input, output) settings proc =
     | Some header -> parse_header header
     | None -> Lwt.return_unit in
 
-  let%lwt () = dispatch None in
-  let%lwt () = Lwt_io.close input in
-  let%lwt () = Lwt_io.close output in
-  Lwt.return_unit
+  Lwt.finalize (fun () -> dispatch None)
+               (fun () ->
+                  let%lwt () = Lwt_io.close input in
+                  Lwt_io.close output)
 
 let fail_with_code ?status code _ _ =
   Lwt.return (Response.create ~code ?status ())

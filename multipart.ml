@@ -130,7 +130,7 @@ let multi {fold_input} boundary bytes dir test_file tbl =
 
   let read_part_string name block =
     let buf = Buffer.create 16 in
-    let ctype = Content_type.create "text/plain" () in
+    let ctype = Content_type.create "text/plain" in
     let%lwt block, buf = fold_input block boundary collect_buf buf in
     let () = add_parameter (string_parameter name ctype buf) in
     Lwt.return block in

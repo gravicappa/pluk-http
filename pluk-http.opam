@@ -1,7 +1,7 @@
 opam-version: "1.2"
-version: "0.1"
+version: "0.2"
 maintainer: "Ramil Farkhshatov <ramil.fh@ya.ru>"
-authors: ["Ramil Farkhshatov"]
+authors: ["Ramil Farkhshatov <ramil.fh@ya.ru>"]
 license: "LGPL-3 with OCaml linking exception"
 build: ["dune" "build" "-j" jobs "-p" name]
 depends: [

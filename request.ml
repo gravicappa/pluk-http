@@ -107,7 +107,7 @@ let clear_files {Data.parameters; _} =
 let parse_body (header: Header.t) input output (settings: Settings.t)
                continue =
   let param_of_query (k, v) =
-    let content_type = Content_type.create "text/plain" () in
+    let content_type = Content_type.create "text/plain" in
     {Parameter.name = k; content_type; value = String v} in
 
   let parameters_of_query tbl query = 
@@ -168,8 +168,7 @@ let parse_body (header: Header.t) input output (settings: Settings.t)
         Lwt.return {Data.parameters; body} in
 
   match header.http_method with
-  | POST | PATCH | PUT -> post_parameters header input
-  | GET | HEAD | DELETE ->
-      Lwt.return {Data.parameters = get_parameters header; body = None}
+  | HEAD ->
+      Lwt.return { Data.parameters = get_parameters header; body = None }
+  | GET | DELETE | POST | PATCH | PUT -> post_parameters header input
   | _ -> Lwt.fail (Wrong_method "")
-

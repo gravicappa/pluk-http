@@ -70,7 +70,7 @@ let content_type =
        next (either variants []) @@ fun alist s ->
          let charset = List.assoc_opt "charset" alist in
          let boundary = List.assoc_opt "boundary" alist in
-         Ok (Content_type.create media_type ~charset ~boundary (), s))
+         Ok (Content_type.create ?charset ?boundary media_type, s))
 
 let content_disposition =
   let delim = spaced_item (P.exact_item ';') in
